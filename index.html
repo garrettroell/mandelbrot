@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="meta/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="meta/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="meta/favicon-16x16.png">
+  <link rel="manifest" href="meta/site.webmanifest">
+  <link rel="mask-icon" href="meta/safari-pinned-tab.svg" color="#5bbad5">
+  <meta name="msapplication-TileColor" content="#da532c">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="stylesheet" href="styles.css">
+  <title>Mandelbrot</title>
+</head>
+
+<script>
+
+  let offset = 360
+
+  function getNextZ(zA, zB, cA, cB) {
+    zANext = zA * zA - zB * zB + cA
+    zBNext = 2 * zA * zB + cB
+    return [zANext, zBNext]
+  }
+
+  function HSLtoRGB(offset, H, S, L) {
+
+    offset = offset > 90 ? offset - 90 : offset - 90
+
+    let colour = { R: 0, G: 0, B: 0 };
+
+    if (H == -1.0 && S == -1.0) {
+      colour.R = L * 255.0;
+      colour.G = L * 255.0;
+      colour.B = L * 255.0;
+    }
+    else {
+      let temporary_1;
+
+      if (L < 0.5)
+        temporary_1 = L * (1.0 + S);
+      else
+        temporary_1 = L + S - L * S;
+
+      let temporary_2;
+
+      temporary_2 = 2.0 * L - temporary_1;
+
+      let hue = ((H + offset) % 360) / 360.0;
+
+      let temporary_R = hue + 0.333;
+      let temporary_G = hue;
+      let temporary_B = hue - 0.333;
+
+      if (temporary_R < 0.0)
+        temporary_R += 1.0;
+      if (temporary_R > 1.0)
+        temporary_R -= 1.0;
+
+      if (temporary_G < 0.0)
+        temporary_G += 1.0;
+      if (temporary_G > 1.0)
+        temporary_G -= 1.0;
+
+      if (temporary_B < 0.0)
+        temporary_B += 1.0;
+      if (temporary_B > 1.0)
+        temporary_B -= 1.0;
+
+      // RED
+      if ((6.0 * temporary_R) < 1.0) {
+        colour.R = (temporary_2 + (temporary_1 - temporary_2) * 6.0 * temporary_R) * 255.0;
+      }
+      else if ((2.0 * temporary_R) < 1.0) {
+        colour.R = temporary_1 * 255.0;
+      }
+      else if ((3.0 * temporary_R) < 2.0) {
+        colour.R = (temporary_2 + (temporary_1 - temporary_2) * (0.666 - temporary_R) * 6.0) * 255.0;
+      }
+      else {
+        colour.R = temporary_2 * 255.0;
+      }
+
+      // GREEN
+      if ((6.0 * temporary_G) < 1.0) {
+        colour.G = (temporary_2 + (temporary_1 - temporary_2) * 6.0 * temporary_G) * 255.0;
+      }
+      else if ((2.0 * temporary_G) < 1.0) {
+        colour.G = temporary_1 * 255.0;
+      }
+      else if ((3.0 * temporary_G) < 2.0) {
+        colour.G = (temporary_2 + (temporary_1 - temporary_2) * (0.666 - temporary_G) * 6.0) * 255.0;
+      }
+      else {
+        colour.G = temporary_2 * 255.0;
+      }
+
+      // BLUE
+      if ((6.0 * temporary_B) < 1.0) {
+        colour.B = (temporary_2 + (temporary_1 - temporary_2) * 6.0 * temporary_B) * 255.0;
+      }
+      else if ((2.0 * temporary_B) < 1.0) {
+        colour.B = temporary_1 * 255.0;
+      }
+      else if ((3.0 * temporary_B) < 2.0) {
+        colour.B = (temporary_2 + (temporary_1 - temporary_2) * (0.666 - temporary_B) * 6.0) * 255.0;
+      }
+      else {
+        colour.B = temporary_2 * 255.0;
+      }
+    }
+
+    colour.R = Math.round(Math.abs(colour.R));
+    colour.G = Math.round(Math.abs(colour.G));
+    colour.B = Math.round(Math.abs(colour.B));
+
+    return colour;
+  }
+
+  function iterationsToColor(iterations, maxIterations, offset) {
+    if (iterations === maxIterations) {
+      return [0, 0, 0, 255]
+    } else {
+      const hue = 360 * (iterations / maxIterations)
+      const color = HSLtoRGB(offset, hue, 0.5, 0.5)
+      return [color.R, color.G, color.B]
+    }
+  }
+
+  function draw({ c, ctx, offset }) {
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+
+    let imageData = ctx.getImageData(0, 0, window.innerWidth, window.innerHeight);
+    let data = imageData.data;
+
+    const MAX_ITER = 80
+
+    let maxX = 0
+    let minX = 0
+    let maxY = 0
+    let minY = 0
+
+    const aspectRatio = window.innerWidth / window.innerHeight;
+    let maximumX = 0
+    let maximumY = 0
+
+    // if more wide than tall
+    if (aspectRatio > 1) {
+      maximumX = 1.2 * aspectRatio
+      maximumY = 1.2
+    }
+    // if more tall than wide
+    else {
+      maximumX = 1.2
+      maximumY = 1.2 * aspectRatio
+    }
+
+    for (var i = 0; i < data.length; i += 4) {
+      // should move to function to abstract
+      var xValue = 2 * maximumX * ((i / 4) % window.innerWidth / window.innerWidth) - maximumX
+      var yValue = 2 * maximumY * (Math.floor((i / 4) / window.innerWidth) / window.innerHeight) - maximumY
+
+      var cA = xValue
+      var cB = yValue
+
+      maxX = maxX > xValue ? maxX : xValue
+      minX = minX < xValue ? minX : xValue
+      maxY = maxY > yValue ? maxY : yValue
+      minY = minY < yValue ? minY : yValue
+
+      let zA = 0
+      let zB = 0
+
+      let n = 0
+      while (Math.abs(zA) <= 2 && n < MAX_ITER) {
+
+        [zA, zB] = getNextZ(zA, zB, cA, cB)
+
+        n += 1
+      }
+
+
+      var color = iterationsToColor(n, MAX_ITER, offset);
+      data[i] = color[0];
+      data[i + 1] = color[1];
+      data[i + 2] = color[2];
+      data[i + 3] = 255;
+    }
+    // console.log('max X', maxX)
+    // console.log('min X', minX)
+    // console.log('max Y', maxY)
+    // console.log('min Y', minY)
+
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  window.addEventListener('resize', () => {
+    var c = document.getElementById("c");
+    var ctx = c.getContext("2d");
+    draw({ c, ctx, offset })
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+
+    var c = document.getElementById("c");
+    var colorPicker = document.getElementById('color-picker')
+    var colorIndicator = document.getElementById('color-indicator')
+
+    var ctx = c.getContext("2d");
+    draw({ c, ctx, offset })
+
+    colorPicker.addEventListener('click', (e) => {
+
+      // get click location and the center of the circle
+      const clickX = e.pageX
+      const clickY = e.pageY
+      const centerX = 310
+      const centerY = 345
+
+      // calculate angle and correct for negative angles
+      var offset = Math.atan2(clickY - centerY, clickX - centerX) * 180 / Math.PI + 90;
+      offset = offset < 0 ? 360 + offset : offset
+
+      // update location of slider and draw the pattern with new colors
+      colorIndicator.style.transform = `rotateZ(${offset}deg)`
+      draw({ c, ctx, offset })
+    })
+
+    let drawing = false
+    let startX = 0
+    let startY = 0
+    let zoomBox;
+
+    c.addEventListener('click', e => {
+      if (drawing) {
+        drawing = false
+      } else {
+        drawing = true
+
+        startX = parseInt(e.clientX)
+        startY = parseInt(e.clientY);
+
+        zoomBox = document.createElement('div')
+        zoomBox.classList.add('zoom-box')
+        zoomBox.style.left = `${startX}px`
+        zoomBox.style.top = `${startY}px`
+        document.getElementsByTagName('body')[0].append(zoomBox)
+      }
+    })
+
+    c.addEventListener('mousemove', e => {
+      if (drawing) {
+        const currentX = parseInt(e.clientX)
+        const currentY = parseInt(e.clientY);
+
+        if (currentX > startX) {
+          zoomBox.style.width = `${currentX - startX}px`
+        } else {
+          zoomBox.style.left = `${currentX}px`
+          zoomBox.style.width = `${startX - currentX}px`
+        }
+
+        if (currentY > startY) {
+          zoomBox.style.height = `${currentY - startY}px`
+        } else {
+          zoomBox.style.top = `${currentY}px`
+          zoomBox.style.height = `${startY - currentY}px`
+        }
+      }
+    })
+
+
+
+
+
+    // c.addEventListener('mousedown', e => {
+    //   const startX = parseInt(e.clientX)
+    //   const startY = parseInt(e.clientY);
+
+    //   let zoomBox = document.createElement('div')
+    //   zoomBox.classList.add('zoom-box')
+    //   zoomBox.style.left = `${startX}px`
+    //   zoomBox.style.top = `${startY}px`
+    //   document.getElementsByTagName('body')[0].append(zoomBox)
+
+    //   c.addEventListener('mousemove', e => {
+    //     const currentX = parseInt(e.clientX)
+    //     const currentY = parseInt(e.clientY);
+
+    //     if (currentX > startX) {
+    //       zoomBox.style.width = `${currentX - startX}px`
+    //     } else {
+    //       zoomBox.style.left = `${currentX}px`
+    //       zoomBox.style.width = `${startX - currentX}px`
+    //     }
+
+    //     if (currentY > startY) {
+    //       zoomBox.style.height = `${currentY - startY}px`
+    //     } else {
+    //       zoomBox.style.top = `${currentY}px`
+    //       zoomBox.style.height = `${startY - currentY}px`
+    //     }
+    //   })
+
+    //   c.addEventListener('mouseup', e => {
+    //     console.log(e)
+    //     const endX = parseInt(e.clientX)
+    //     const endY = parseInt(e.clientY);
+    //   })
+    // })
+
+
+  })
+</script>
+
+
+
+<body>
+  <canvas id="c">
+
+  </canvas>
+  <div class="menu">
+    <h1 class="title">Mandelbrot Set</h1>
+    <p class="color-label">Color</p>
+    <div class="color-picker" id="color-picker">
+      <!-- <p class="color-label">Color</p> -->
+      <div class="color-circle" id="color-circle"></div>
+      <div class="color-indicator" id="color-indicator"></div>
+    </div>
+
+
+  </div>
+
+  </div>
+  </div>
+
+
+</body>
+
+</html>
