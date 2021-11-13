@@ -5,13 +5,17 @@
   font-family: Helvetica, sans-serif;
 }
 
+.c {
+  cursor: crosshair;
+}
+
 .menu {
   position: fixed;
-  height: 400px;
-  width: 400px;
+  height: 300px;
+  width: 300px;
   background-color: rgba(255, 255, 255, 0.3);
-  top: 100px;
-  left: 100px;
+  top: 50px;
+  left: 50px;
   border: 1px solid;
   border-radius: 10px;
   padding: 10px;
@@ -22,39 +26,87 @@
 }
 
 .color-label {
-  font-size: 26px;
+  font-size: 18px;
 }
 
 .color-picker {
   position: relative;
   cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.247);
+  border-radius: 100%;
+}
+
+.color-wheel {
+  height: 110px;
+  width: 110px;
+  background-image: url("colorWheel.png");
+  background-size: contain;
+  position: absolute;
+  top: 32px;
+  left: 32px;
 }
 
 .color-circle {
-  height: 200px;
-  width: 200px;
-  border: 25px solid grey;
+  height: 125px;
+  width: 125px;
+  border: 25px solid transparent;
   border-radius: 100%;
 }
 
 .color-indicator {
   position: absolute;
-  height: 200px;
-  width: 200px;
+  height: 175px;
+  width: 175px;
   top: 0px;
   left: 0px;
-  border: 25px solid black;
-  border-radius: 100%;
-  border-bottom-color: transparent;
-  border-left-color: transparent;
-  border-right-color: transparent;
-  /* transform: rotateZ(270deg); */
+  display: flex;
+  justify-content: center;
+}
+
+.downward-triangle {
+  margin-top: 10px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 18px solid black;
 }
 
 .zoom-box {
   height: 0px;
   width: 0px;
-  /* background-color: khaki; */
   border: 2px solid white;
   position: fixed;
+}
+
+.zoom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 250px;
+  height: 40px;
+}
+
+.zoom-level {
+  display: flex;
+  font-weight: bold;
+}
+
+.click-to-zoom {
+  font-weight: bold;
+}
+
+.reset-zoom-button {
+  display: none;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-family: Helvetica, sans-serif;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.reset-zoom-button:hover {
+  background: rgba(255, 255, 255, 0.397);
 }
